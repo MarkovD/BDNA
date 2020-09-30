@@ -1,3 +1,5 @@
+from random import gauss
+from math import sqrt
 
 class TrafficGenerator():
     def __init__(throughput, traffic_distribution):
@@ -5,8 +7,8 @@ class TrafficGenerator():
 
             traffic_distribution:
             |cos0_%   |cos0_ev  |
-            |cos3_%   |cos1_ev  |
-            |cos5_%   |cos3_ev  |
+            |cos1_%   |cos1_ev  |
+            |cos2_%   |cos3_ev  |
 
             Time Resolution = 1s
 
@@ -22,24 +24,32 @@ class TrafficGenerator():
         self.cos0_ev = self.td[0][1]
         self.cos1_percent = self.td[1][0]
         self.cos1_ev = self.td[1][1]
-        self.cos3_percent = self.td[2][0]
-        self.cos3_ev = self.td[2][1]
+        self.cos2_percent = self.td[2][0]
+        self.cos2_ev = self.td[2][1]
 
         self.volume = throughput/8  #Bytes/s
         self.cos0_target_volume = self.cos0_percent * self.volume
         self.cos1_target_volume = self.cos1_percent * self.volume
-        self.cos3_target_volume = self.cos3_percent * self.volume
+        self.cos2_target_volume = self.cos2_percent * self.volume
 
-    def greedy_generation(cos, cos_ev, cos_target_volume):
+        self.cos0_traffic = []
+        self.cos1_traffic = []
+        self.cos2_traffic = []
+
+        self.traffic = []
+
+    def greedy_generation(cos, cos_ev, ctf):
         # Almost-Gaussian Distribution
         # Remember: min = 64, max = 9000
-        # mu = cos_ev
-        # sigma = mu + 25%*mu
+        mu = cos_ev
+        sigma = mu*(1+)
 
         #init sequence
         sequence = []
-        # while ctf is >= 64
+
+        while ctf is >= 64
         # Generate value 
+        packet_length = random.gauss()
         # if value < cos_target_volume (ctf)
         # add value to sequence
         # Decrement ctf: ctf = ctf - value
