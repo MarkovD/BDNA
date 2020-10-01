@@ -32,9 +32,9 @@ class TrafficGenerator():
         self.cos1_target_volume = self.cos1_percent * self.volume
         self.cos2_target_volume = self.cos2_percent * self.volume
 
-        self.cos0_traffic = []
-        self.cos1_traffic = []
-        self.cos2_traffic = []
+        self.cos0_traffic = self.greedy_generation(0, self.cos0_ev, self.cos0_target_volume)
+        self.cos1_traffic = self.greedy_generation(1, self.cos1_ev, self.cos1_target_volume)
+        self.cos2_traffic = self.greedy_generation(2, self.cos2_ev, self.cos2_target_volume)
 
         self.traffic = []
 
@@ -42,20 +42,28 @@ class TrafficGenerator():
         # Almost-Gaussian Distribution
         # Remember: min = 64, max = 9000
         mu = cos_ev
-        sigma = mu*(1+)
+        sigma = 1.2*mu
 
-        #init sequence
-        sequence = []
+        #init cos matrix
+        cos_matrix = []
 
-        while ctf is >= 64
-        # Generate value 
-        packet_length = random.gauss()
-        # if value < cos_target_volume (ctf)
-        # add value to sequence
-        # Decrement ctf: ctf = ctf - value
+        while ctf >= 64:
 
-        # return cos_matrix:
-        # | cos | value1 |
-        # | cos | value2 |
-        # | cos | ecc    |
+            # Generate random length frame 
+            frame_length = random.gauss(mu,sigma)  #Bytes
+
+            # frame length must be inside the range [64 9000] 
+            if packet_length > 9000:
+                packet_length = 9000
+            elif packet_length < 64:
+                packet_length = 64
+
+            if packet_length > (ctf-64):
+                packet_length=ctf-64
+            
+            cos_matrix.append([cos, packet_length])
+            ctf-=packet_length
+        
+        return cos_matrix
+
 
