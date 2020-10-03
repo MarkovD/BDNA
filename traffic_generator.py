@@ -1,69 +1,72 @@
-from random import gauss
-from math import sqrt
+from random import shuffle, gauss
 
 class TrafficGenerator():
-    def __init__(throughput, traffic_distribution):
+    def __init__(self, throughput, traffic_cos_data):
         """[summary]
 
-            traffic_distribution:
+            traffic_cos_data:
+
             |cos0_%   |cos0_ev  |
             |cos1_%   |cos1_ev  |
             |cos2_%   |cos3_ev  |
+            |...      |...      |
+            |cos7_%   |cos7_ev  |
 
             Time Resolution = 1s
 
         Args:
             throughput ([type]): [description]
-            traffic_distribution ([type]): [description]
+            traffic_cos_data ([type]): [description]
         """
 
-        self.throughput = throughput  #bit/s
-        self.td = traffic_distribution
+        #if throughput < 0:
+        #    raise Exception("throughput must be positive or zero. It cannot be = {}".format(throughput))
         
-        self.cos0_percent = self.td[0][0]
-        self.cos0_ev = self.td[0][1]
-        self.cos1_percent = self.td[1][0]
-        self.cos1_ev = self.td[1][1]
-        self.cos2_percent = self.td[2][0]
-        self.cos2_ev = self.td[2][1]
+        self.throughput = throughput  #bit/s
+        self.volume = [int(t/8) for t in self.throughput]   #bytes/s
 
-        self.volume = throughput/8  #Bytes/s
-        self.cos0_target_volume = self.cos0_percent * self.volume
-        self.cos1_target_volume = self.cos1_percent * self.volume
-        self.cos2_target_volume = self.cos2_percent * self.volume
-
-        self.cos0_traffic = self.greedy_generation(0, self.cos0_ev, self.cos0_target_volume)
-        self.cos1_traffic = self.greedy_generation(1, self.cos1_ev, self.cos1_target_volume)
-        self.cos2_traffic = self.greedy_generation(2, self.cos2_ev, self.cos2_target_volume)
+        self.traffic_cos_data = traffic_cos_data
 
         self.traffic = []
 
-    def greedy_generation(cos, cos_ev, ctf):
-        # Almost-Gaussian Distribution
+        for t in range(len(self.volume)):
+            
+            traffic_t = []
+            #
+            for n in range(len(traffic_cos_data)):
+                cos_n_tv = int((traffic_cos_data[n][0]/100) * self.volume[t]) # cos n target traffic volume
+                cos_n_traffic = self.generate_cos_traffic(n, traffic_cos_data[n][1], cos_n_tv)
+                traffic_t += cos_n_traffic
+            #
+            shuffle(traffic_t)
+            self.traffic.append(traffic_t)
+
+
+    def generate_cos_traffic(self, cos, cos_ev, ctv):
+
         # Remember: min = 64, max = 9000
         mu = cos_ev
-        sigma = 1.2*mu
+        sigma = 0.2*mu
 
-        #init cos matrix
-        cos_matrix = []
+        #initialize cos_traffic matrix
+        cos_traffic = []
 
-        while ctf >= 64:
+        while ctv > mu:
 
-            # Generate random length frame 
-            frame_length = random.gauss(mu,sigma)  #Bytes
+            # Generate Frame 
+            frame_length = int(abs(gauss(mu,sigma)))  #Bytes
 
             # frame length must be inside the range [64 9000] 
-            if packet_length > 9000:
-                packet_length = 9000
-            elif packet_length < 64:
-                packet_length = 64
+            if frame_length > 9000:
+                frame_length = 9000
+            elif frame_length < 64:
+                frame_length = 64
 
-            if packet_length > (ctf-64):
-                packet_length=ctf-64
-            
-            cos_matrix.append([cos, packet_length])
-            ctf-=packet_length
+            if ctv >= frame_length:
+                cos_traffic.append([cos, frame_length])
+                ctv-=frame_length
         
-        return cos_matrix
+        return cos_traffic
 
+    
 
