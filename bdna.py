@@ -24,7 +24,8 @@ def main():
 
     start_time = time.time()
     for t in range(len(throughput)):
-        tg.traffic[s]
+        traffic_t = tg.traffic[t]
+        oom_t = morris_algo(traffic_t)
     print("--- %s seconds ---" % (time.time() - start_time))
 
 def initiali():
@@ -58,6 +59,7 @@ def import_csv(csvfilename):
 def preprocess_data(data):
 
     # init constant variables
+    scale_factor = 300  # data was taken from a 300Gbps interface
     seconds_in_day = 60*60*24
 
     # Remove Header
@@ -68,7 +70,7 @@ def preprocess_data(data):
     real_time = np.linspace(0,seconds_in_day,len(data))
     
     for i in range(len(data)):
-        geant_throughput.append(float(data[i][1]))
+        geant_throughput.append(float(data[i][1])/scale_factor)
 
     ## INTERPOLATE DATA
     # from 1 sample every 5 minutes to 1 sample per second
