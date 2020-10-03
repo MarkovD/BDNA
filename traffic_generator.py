@@ -29,6 +29,7 @@ class TrafficGenerator():
 
         self.traffic = []
 
+        x = 1
         for t in range(len(self.volume)):
             
             traffic_t = []
@@ -40,13 +41,18 @@ class TrafficGenerator():
             #
             shuffle(traffic_t)
             self.traffic.append(traffic_t)
+            
+            # PROGRESS BAR
+            if t == (x*int(len(self.volume)/100)):
+                print("PROGRESS IS @ {}%".format(x))
+                x+=1
 
 
     def generate_cos_traffic(self, cos, cos_ev, ctv):
 
         # Remember: min = 64, max = 9000
         mu = cos_ev
-        sigma = 0.2*mu
+        sigma = 0.1*mu
 
         #initialize cos_traffic matrix
         cos_traffic = []
