@@ -30,72 +30,39 @@ def main():
     ## SETUP GRAPH
 
     fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(111)
-
-    xdata= np.array([0])
-    est_throughput_data = np.array([0])
-    cos0_throughput_data = np.array([0])
-    cos1_throughput_data = np.array([0])
-    cos2_throughput_data = np.array([0])
-    #throughput_data = np.array([0])
-
-
-    # draw and show it
-    fig.canvas.draw()
-    plt.show(block=False)
-    
-
-    #axes.set_xlim([0,3601])
-    #axes.set_ylim([0,1000])
-    #axes.set_autoscale_on(True) # enable autoscale
-    #axes.autoscale_view(True,True,True)
-
-    line, = ax.plot(xdata, est_throughput_data, 'o')
-    line0, = ax.plot(xdata, cos0_throughput_data, '-')
-    line1, = ax.plot(xdata, cos1_throughput_data, '-')
-    line2, = ax.plot(xdata, cos2_throughput_data, '-')
-    #l = ax.plot(xdata, throughput_data, '--')
-
     plt.xlabel('seconds')
     plt.ylabel('throughput [bit/s]')
     plt.title('BIGDATA-SHARK')
 
-    #plt.show()
+    xdata = np.arange(3600)    
+
+    estimated_tot_throughput = np.array([])
+    estimated_cos0_throughput = np.array([])
+    estimated_cos1_throughput = np.array([])
+    estimated_cos2_throughput = np.array([])
 
     for t in range(len(throughput)):
-        start_time = time.time()
         
         traffic_t = tg.traffic[t]
         
         oom_t = morris_algo(traffic_t)
         sample_t = vitter_algo(traffic_t, SLOTS)
 
-        estimated_throughput = estimate_throughput(sample_t, oom_t)
+        estimated_throughput_t = estimate_throughput(sample_t, oom_t)
 
-        ########
-        print("PRINT {} || accuracy = {}".format(t, estimated_throughput[0]/throughput[t]))
-        xdata = np.append(xdata,t)
-        est_throughput_data = np.append(est_throughput_data, estimated_throughput[0])
-        cos0_throughput_data = np.append(cos0_throughput_data, estimated_throughput[1])
-        cos1_throughput_data = np.append(cos1_throughput_data, estimated_throughput[1]+estimated_throughput[2])
-        cos2_throughput_data = np.append(cos2_throughput_data, estimated_throughput[1]+estimated_throughput[2]+estimated_throughput[3])
-        #throughput_data = np.append(throughput_data, throughput[t])
-        line.set_data(xdata,est_throughput_data)
-        line0.set_data(xdata, cos0_throughput_data)
-        line1.set_data(xdata, cos1_throughput_data)
-        line2.set_data(xdata, cos2_throughput_data)
-        #l.set_data(xdata, throughput_data)
-        ax.relim() 
-        ax.autoscale_view(True,True,True) 
-        fig.canvas.draw()
+        estimated_tot_throughput = np.append(estimated_tot_throughput, estimated_throughput_t[0])
+        estimated_cos0_throughput = np.append(estimated_cos0_throughput, estimated_throughput_t[1])
+        estimated_cos1_throughput = np.append(estimated_cos1_throughput, estimated_throughput_t[2])
+        estimated_cos2_throughput = np.append(estimated_cos2_throughput, estimated_throughput_t[3])
+    
+    plt.plot(xdata,throughput, 'o')
+    plt.plot(xdata, estimated_tot_throughput, 'x')
+    plt.plot(xdata, estimated_cos0_throughput, '-')
+    plt.plot(xdata, estimated_cos0_throughput+estimated_cos1_throughput, '-')
+    plt.plot(xdata, estimated_cos0_throughput+estimated_cos1_throughput+estimated_cos2_throughput, '-')
+    plt.show()
+    print("FINE")
 
-        #axes.relim()        # Recalculate limits
-        #axes.autoscale_view(True,True,True) #Autoscale
-        #plt.draw()      # Redraw
-        ###########
-        elaboration_time = time.time() - start_time
-        
-        time.sleep(1-elaboration_time)
 
 def import_csv(csvfilename):
     data = []
