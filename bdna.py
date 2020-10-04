@@ -20,7 +20,7 @@ TRAFFIC_FILE = "GEANT_AMS-FRA_24h_traffic.csv"
 SECONDS_OF_TRAFFIC = 300
 INTERFACE_SPEED = 1*10**9  # 1Gbps
 PERCENTAGE = 1
-SLOTS = int((INTERFACE_SPEED/(4500*8))*(PERCENTAGE/100))
+SLOTS = int((INTERFACE_SPEED/(1538*8))*(PERCENTAGE/100))
 SLOTS_OOM = get_digits(SLOTS)
 
 COS0 = 60
@@ -69,7 +69,7 @@ def main():
         
         # PROGRESS BAR
         if t == (x*int(len(throughput)/100)):
-            print("PROGRESS IS @ {}%: {}".format(x, x*'='+'>'))
+            print("EXECUTION PROGRESS IS @ {}%: {}".format(x, x*'='+'>'))
             x+=1
 
     # *** PLOT RESULTS PHASE ***
@@ -78,7 +78,7 @@ def main():
     fig.suptitle('Big Data Network Analyzer (BDNA)', fontsize=16)
     plt.xlabel('Time [s]')
     plt.ylabel('Throughput [bit/s]')
-    plt.title('Total Throughput Estimation - MEMORY = {}% OF INTERFACE CAPACITY'.format(PERCENTAGE))
+    plt.title('TOTAL THROUGHPUT ESTIMATION - MEMORY = {}% OF INTERFACE CAPACITY'.format(PERCENTAGE))
 
     xdata = np.arange(SECONDS_OF_TRAFFIC)  
     plt.plot(xdata, estimated_tot_throughput, 'rx')
@@ -91,7 +91,7 @@ def main():
     fig.suptitle('Big Data Network Analyzer (BDNA)', fontsize=16)
     plt.xlabel('Time [s]')
     plt.ylabel('COS PERCENTAGE [%]')
-    plt.title('CoS Distribution Estimation - MEMORY = {}% OF INTERFACE CAPACITY'.format(PERCENTAGE))
+    plt.title('COS DISTRIBUTION ESTIMATION - MEMORY = {}% OF INTERFACE CAPACITY'.format(PERCENTAGE))
 
     xdata = np.arange(SECONDS_OF_TRAFFIC)  
     # COS0
