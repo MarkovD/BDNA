@@ -55,17 +55,17 @@ def main():
         oom_t = morris_algo(traffic_t)
         sample_t = vitter_algo(traffic_t, SLOTS)
 
-        estimated_throughput_t = estimate_throughput(sample_t, oom_t)
+        estimated_results_t = estimate_throughput_and_cos(sample_t, oom_t)
 
         #! TROUBLESHOOTING PURPOSE
         #print("{} --> ESTIMATED = {}K || REAL = {}K || OOM RATIO (real/est) = {} || SAMPLING RATIO (slots/real) {} || COS DISTRO {}".format(t,estimated_throughput_t[0]//10**3, throughput[t]//10**3, 
         #get_digits(len(traffic_t))/oom_t, SLOTS/len(traffic_t), "{}|{}|{}".format(int(100*estimated_throughput_t[1]/estimated_throughput_t[0]),int(100*estimated_throughput_t[2]/estimated_throughput_t[0]),int(100*estimated_throughput_t[3]/estimated_throughput_t[0]))))
 
         # SAVE DATA FOR PLOTS
-        estimated_tot_throughput = np.append(estimated_tot_throughput, estimated_throughput_t[0])
-        estimated_cos0_percent = np.append(estimated_cos0_percent, 100*(estimated_throughput_t[1]/estimated_throughput_t[0]))
-        estimated_cos1_percent = np.append(estimated_cos1_percent, 100*(estimated_throughput_t[2]/estimated_throughput_t[0]))
-        estimated_cos2_percent = np.append(estimated_cos2_percent, 100*(estimated_throughput_t[3]/estimated_throughput_t[0]))
+        estimated_tot_throughput = np.append(estimated_tot_throughput, estimated_results_t[0])
+        estimated_cos0_percent = np.append(estimated_cos0_percent, estimated_results_t[1])
+        estimated_cos1_percent = np.append(estimated_cos1_percent, estimated_results_t[2])
+        estimated_cos2_percent = np.append(estimated_cos2_percent, estimated_results_t[3])
         
         # PROGRESS BAR
         if t == (x*int(len(throughput)/100)):
@@ -180,7 +180,7 @@ def vitter_algo(stream, slots):
 
     return sampled_stream
 
-def estimate_throughput(sample, oom):
+def estimate_throughput_and_cos(sample, oom):
 
     scale_factor = 10**(oom-SLOTS_OOM)
 
@@ -203,18 +203,18 @@ def estimate_throughput(sample, oom):
         volume_cos[j]+=frame[1]
     
     for i in range(NUMBER_OF_COS):
-        estimated_distribution.append((volume_cos[i]/estimated_volume)*scale_factor)
+        estimated_distribution.append(100*((volume_cos[i]/estimated_volume)*scale_factor))
     
-    # *** CALCULATE THROUGHPUT AND RETURN RESULTS ***
-    estimated_throughput = []
+    # *** ASSEMBLE RESULTS AND RETURN THEM ***
+    estimated_results = []
     
     estimated_throughput_tot = estimated_volume*8
-    estimated_throughput.append(estimated_throughput_tot)
+    estimated_results.append(estimated_throughput_tot)
 
     for i in range(NUMBER_OF_COS):
-        estimated_throughput.append(int(estimated_distribution[i]*estimated_throughput_tot))
+        estimated_results.append(estimated_distribution[i])
     
-    return estimated_throughput
+    return estimated_results
 
 
     sum = 0
