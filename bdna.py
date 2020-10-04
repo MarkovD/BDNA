@@ -4,21 +4,35 @@ import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import matplotlib
-#matplotlib.use('TkAgg')
-#import pandas as pd
 import time
 import csv
-seed()
+seed(314)
 
-TRAFFIC_FILE = "GEANT_AMS-FRA_24h_traffic.csv"
-SLOTS = 100
+def get_digits(n):
+
+    digits=0
+    while(n>0):
+        digits+=1
+        n=n//10
+        
+    return digits
+
 NUMBER_OF_COS = 3
+TRAFFIC_FILE = "GEANT_AMS-FRA_24h_traffic.csv"
+SECONDS_OF_TRAFFIC = 300
+INTERFACE_SPEED = 1000000000  # 1Gbps
+PERCENTAGE = 1
+SLOTS = int((INTERFACE_SPEED/(4500*8))*(PERCENTAGE/100))
+SLOTS_OOM = get_digits(SLOTS)
+FILTER_ORDER = 2
+
+
 
 def main():
 
-    #*** INITIALIZATION PHASE ***
+    # *** INITIALIZATION PHASE ***
     ## set constant variables
-    traffic_distribution_per_cos = [[20, 6000], [30, 2000], [50, 800]]
+    traffic_distribution_per_cos = [[60, 6000], [30, 3000], [10, 1000]]
 
     ## import data & preprocessing
     geant_traffic_data = import_csv(TRAFFIC_FILE)
@@ -30,17 +44,18 @@ def main():
     ## SETUP GRAPH
 
     fig = plt.figure(figsize=(10,10))
-    plt.xlabel('seconds')
+    plt.xlabel('seconds [s]')
     plt.ylabel('throughput [bit/s]')
-    plt.title('BIGDATA-SHARK')
+    plt.title('Big Data Network Analyzer (BDNA)')
 
-    xdata = np.arange(3600)    
+    xdata = np.arange(SECONDS_OF_TRAFFIC)    
 
     estimated_tot_throughput = np.array([])
     estimated_cos0_throughput = np.array([])
     estimated_cos1_throughput = np.array([])
     estimated_cos2_throughput = np.array([])
 
+    x=1
     for t in range(len(throughput)):
         
         traffic_t = tg.traffic[t]
@@ -54,12 +69,32 @@ def main():
         estimated_cos0_throughput = np.append(estimated_cos0_throughput, estimated_throughput_t[1])
         estimated_cos1_throughput = np.append(estimated_cos1_throughput, estimated_throughput_t[2])
         estimated_cos2_throughput = np.append(estimated_cos2_throughput, estimated_throughput_t[3])
+        
+        # PROGRESS BAR
+        if t == (x*int(len(throughput)/100)):
+            print("PROGRESS IS @ {}%: {}".format(x, x*'='+'>'))
+            x+=1
+
+        ## ONLINE POST-PROCESSING
+        #if t >= FILTER_ORDER:
+        #    estimated_tot_throughput = moving_average_filter(estimated_tot_throughput, FILTER_ORDER)
+        #    estimated_cos0_throughput = moving_average_filter(estimated_cos0_throughput, 10)
+        #    estimated_cos1_throughput = moving_average_filter(estimated_cos1_throughput, 10)
+        #    estimated_cos2_throughput = moving_average_filter(estimated_cos2_throughput, 10)
+
+    y1 = estimated_cos0_throughput
+    y2 = y1+estimated_cos1_throughput
+    y3 = y2+estimated_cos2_throughput
     
-    plt.plot(xdata,throughput, 'o')
-    plt.plot(xdata, estimated_tot_throughput, 'x')
-    plt.plot(xdata, estimated_cos0_throughput, '-')
-    plt.plot(xdata, estimated_cos0_throughput+estimated_cos1_throughput, '-')
-    plt.plot(xdata, estimated_cos0_throughput+estimated_cos1_throughput+estimated_cos2_throughput, '-')
+
+    #plt.fill_between(xdata, y1)
+    #plt.fill_between(xdata,y2,y1)
+    #plt.fill_between(xdata,y3,y2)
+    plt.plot(xdata,throughput, 'ro--', linewidth=2)
+    plt.plot(xdata, estimated_tot_throughput, 'bx-')
+    #plt.plot(xdata, y1, '-')
+    #plt.plot(xdata, y2, '-')
+    #plt.plot(xdata, y3, 'rx-', linewidth=2)
     plt.show()
     print("FINE")
 
@@ -76,7 +111,7 @@ def import_csv(csvfilename):
 def preprocess_data(data):
 
     # init constant variables
-    scale_factor = 300  # data was taken from a 300Gbps interface
+    scale_factor = 300  #! data was taken from a 300Gbps interface
     seconds_in_day = 60*60*24
 
     # Remove Header
@@ -100,8 +135,8 @@ def preprocess_data(data):
     #plt.show()
 
     # Randomly extract 1hour of traffic out of the whole day
-    t0 = randrange(seconds_in_day - 3600)
-    t1 = t0+3600
+    t0 = randrange(seconds_in_day - SECONDS_OF_TRAFFIC)
+    t1 = t0+SECONDS_OF_TRAFFIC
 
     return [int(interp_throughput[i]) for i in range(t0, t1)]
 
@@ -162,7 +197,7 @@ def estimate_distribution(sample, estimated_volume, NUMBER_OF_COS):
 
 def estimate_throughput(sample, oom):
 
-    scale_factor = 10**(oom-2)
+    scale_factor = 10**(oom-SLOTS_OOM)
 
     ## ESTIMATE VOLUME
     sample_volume = 0
@@ -195,6 +230,16 @@ def estimate_throughput(sample, oom):
         estimated_throughput.append(int(estimated_distribution[i]*estimated_throughput_tot))
     
     return estimated_throughput
+
+def moving_average_filter(sequence, order):
+
+    sum = 0
+    for i in range(order):
+        sum += sequence[-(i+1)]
+    sequence[-1] = sum/order
+
+    return sequence
+
 
 
 if __name__ == "__main__":

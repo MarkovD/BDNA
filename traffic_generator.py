@@ -1,4 +1,5 @@
-from random import shuffle, gauss
+from random import shuffle, gauss,seed
+seed(314)
 
 class TrafficGenerator():
     def __init__(self, throughput, traffic_cos_data):
@@ -44,7 +45,7 @@ class TrafficGenerator():
             
             # PROGRESS BAR
             if t == (x*int(len(self.volume)/100)):
-                print("PROGRESS IS @ {}%".format(x))
+                print("PROGRESS IS @ {}%: {}".format(x, x*'='+'>'))
                 x+=1
 
 
@@ -75,4 +76,3 @@ class TrafficGenerator():
         return cos_traffic
 
     
-
