@@ -3,8 +3,6 @@ from traffic_generator import TrafficGenerator
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-import matplotlib
-import time
 import csv
 seed(314)
 
@@ -20,19 +18,20 @@ def get_digits(n):
 NUMBER_OF_COS = 3
 TRAFFIC_FILE = "GEANT_AMS-FRA_24h_traffic.csv"
 SECONDS_OF_TRAFFIC = 300
-INTERFACE_SPEED = 1000000000  # 1Gbps
+INTERFACE_SPEED = 1*10**9  # 1Gbps
 PERCENTAGE = 1
 SLOTS = int((INTERFACE_SPEED/(4500*8))*(PERCENTAGE/100))
 SLOTS_OOM = get_digits(SLOTS)
-FILTER_ORDER = 2
 
-
+COS0 = 60
+COS1 = 30
+COS2 = 10
 
 def main():
 
     # *** INITIALIZATION PHASE ***
     ## set constant variables
-    traffic_distribution_per_cos = [[60, 6000], [30, 3000], [10, 1000]]
+    traffic_distribution_per_cos = [COS0, COS1, COS2]
 
     ## import data & preprocessing
     geant_traffic_data = import_csv(TRAFFIC_FILE)
@@ -40,21 +39,14 @@ def main():
 
     ## setup a traffic generator
     tg = TrafficGenerator(throughput, traffic_distribution_per_cos)
-
-    ## SETUP GRAPH
-
-    fig = plt.figure(figsize=(10,10))
-    plt.xlabel('seconds [s]')
-    plt.ylabel('throughput [bit/s]')
-    plt.title('Big Data Network Analyzer (BDNA)')
-
-    xdata = np.arange(SECONDS_OF_TRAFFIC)    
-
+     
+    ## initialize variables for plots
     estimated_tot_throughput = np.array([])
-    estimated_cos0_throughput = np.array([])
-    estimated_cos1_throughput = np.array([])
-    estimated_cos2_throughput = np.array([])
+    estimated_cos0_percent = np.array([])
+    estimated_cos1_percent = np.array([])
+    estimated_cos2_percent = np.array([])
 
+    # *** EXECUTION PHASE ***
     x=1
     for t in range(len(throughput)):
         
@@ -65,38 +57,57 @@ def main():
 
         estimated_throughput_t = estimate_throughput(sample_t, oom_t)
 
+        #! TROUBLESHOOTING PURPOSE
+        #print("{} --> ESTIMATED = {}K || REAL = {}K || OOM RATIO (real/est) = {} || SAMPLING RATIO (slots/real) {} || COS DISTRO {}".format(t,estimated_throughput_t[0]//10**3, throughput[t]//10**3, 
+        #get_digits(len(traffic_t))/oom_t, SLOTS/len(traffic_t), "{}|{}|{}".format(int(100*estimated_throughput_t[1]/estimated_throughput_t[0]),int(100*estimated_throughput_t[2]/estimated_throughput_t[0]),int(100*estimated_throughput_t[3]/estimated_throughput_t[0]))))
+
+        # SAVE DATA FOR PLOTS
         estimated_tot_throughput = np.append(estimated_tot_throughput, estimated_throughput_t[0])
-        estimated_cos0_throughput = np.append(estimated_cos0_throughput, estimated_throughput_t[1])
-        estimated_cos1_throughput = np.append(estimated_cos1_throughput, estimated_throughput_t[2])
-        estimated_cos2_throughput = np.append(estimated_cos2_throughput, estimated_throughput_t[3])
+        estimated_cos0_percent = np.append(estimated_cos0_percent, 100*(estimated_throughput_t[1]/estimated_throughput_t[0]))
+        estimated_cos1_percent = np.append(estimated_cos1_percent, 100*(estimated_throughput_t[2]/estimated_throughput_t[0]))
+        estimated_cos2_percent = np.append(estimated_cos2_percent, 100*(estimated_throughput_t[3]/estimated_throughput_t[0]))
         
         # PROGRESS BAR
         if t == (x*int(len(throughput)/100)):
             print("PROGRESS IS @ {}%: {}".format(x, x*'='+'>'))
             x+=1
 
-        ## ONLINE POST-PROCESSING
-        #if t >= FILTER_ORDER:
-        #    estimated_tot_throughput = moving_average_filter(estimated_tot_throughput, FILTER_ORDER)
-        #    estimated_cos0_throughput = moving_average_filter(estimated_cos0_throughput, 10)
-        #    estimated_cos1_throughput = moving_average_filter(estimated_cos1_throughput, 10)
-        #    estimated_cos2_throughput = moving_average_filter(estimated_cos2_throughput, 10)
+    # *** PLOT RESULTS PHASE ***
+    ## THROUGHPUT
+    fig = plt.figure(1,figsize=(10,10))
+    fig.suptitle('Big Data Network Analyzer (BDNA)', fontsize=16)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Throughput [bit/s]')
+    plt.title('Total Throughput Estimation - MEMORY = {}% OF INTERFACE CAPACITY'.format(PERCENTAGE))
 
-    y1 = estimated_cos0_throughput
-    y2 = y1+estimated_cos1_throughput
-    y3 = y2+estimated_cos2_throughput
+    xdata = np.arange(SECONDS_OF_TRAFFIC)  
+    plt.plot(xdata, estimated_tot_throughput, 'rx')
+    plt.plot(xdata,throughput, 'b--', linewidth=2)
     
-
-    #plt.fill_between(xdata, y1)
-    #plt.fill_between(xdata,y2,y1)
-    #plt.fill_between(xdata,y3,y2)
-    plt.plot(xdata,throughput, 'ro--', linewidth=2)
-    plt.plot(xdata, estimated_tot_throughput, 'bx-')
-    #plt.plot(xdata, y1, '-')
-    #plt.plot(xdata, y2, '-')
-    #plt.plot(xdata, y3, 'rx-', linewidth=2)
     plt.show()
-    print("FINE")
+
+    ## COS DISTRIBUTION
+    fig = plt.figure(2,figsize=(10,10))
+    fig.suptitle('Big Data Network Analyzer (BDNA)', fontsize=16)
+    plt.xlabel('Time [s]')
+    plt.ylabel('COS PERCENTAGE [%]')
+    plt.title('CoS Distribution Estimation - MEMORY = {}% OF INTERFACE CAPACITY'.format(PERCENTAGE))
+
+    xdata = np.arange(SECONDS_OF_TRAFFIC)  
+    # COS0
+    plt.plot(xdata, estimated_cos0_percent, 'bx')
+    real_cos0_percent = np.array(SECONDS_OF_TRAFFIC * [COS0])
+    plt.plot(xdata, real_cos0_percent, 'r--', linewidth=2)
+    # COS1
+    plt.plot(xdata, estimated_cos1_percent, 'yx')
+    real_cos1_percent = np.array(SECONDS_OF_TRAFFIC * [COS1])
+    plt.plot(xdata, real_cos1_percent, 'r--', linewidth=2)
+    # COS2
+    plt.plot(xdata, estimated_cos2_percent, 'gx')
+    real_cos2_percent = np.array(SECONDS_OF_TRAFFIC * [COS2])
+    plt.plot(xdata, real_cos2_percent, 'r--', linewidth=2)
+
+    plt.show()
 
 
 def import_csv(csvfilename):
@@ -111,7 +122,7 @@ def import_csv(csvfilename):
 def preprocess_data(data):
 
     # init constant variables
-    scale_factor = 300  #! data was taken from a 300Gbps interface
+    scale_factor = (300*10**9)/INTERFACE_SPEED  #! traffic data was taken from a 300Gbps interface
     seconds_in_day = 60*60*24
 
     # Remove Header
@@ -169,44 +180,18 @@ def vitter_algo(stream, slots):
 
     return sampled_stream
 
-def estimate_volume(sample, oom):
-    
-    sample_volume = 0
-    for frame in sample:
-        sample_volume+=frame[1]
-    
-    estimated_volume = sample_volume*(10**(oom-2))
-    return estimated_volume
-
-def estimate_distribution(sample, estimated_volume, NUMBER_OF_COS):
-
-    estimated_distribution = []
-
-    volume_cos = []
-    for i in range(NUMBER_OF_COS):
-        volume_cos.append([i,0])
-    
-    for frame in sample:
-        j = frame[i]
-        volume_cos[j][1]+=frame[1]
-    
-    for i in range(NUMBER_OF_COS):
-        estimated_distribution.append([i,int(volume_cos[i][1]/estimated_volume)])
-    
-    return estimated_distribution
-
 def estimate_throughput(sample, oom):
 
     scale_factor = 10**(oom-SLOTS_OOM)
 
-    ## ESTIMATE VOLUME
+    # *** ESTIMATE VOLUME ***
     sample_volume = 0
     for frame in sample:
         sample_volume+=frame[1]
     
     estimated_volume = sample_volume*scale_factor
     
-    ## ESTIMATE DISTRIBUTION
+    # *** ESTIMATE DISTRIBUTION ***
     estimated_distribution = []
 
     volume_cos = []
@@ -220,7 +205,7 @@ def estimate_throughput(sample, oom):
     for i in range(NUMBER_OF_COS):
         estimated_distribution.append((volume_cos[i]/estimated_volume)*scale_factor)
     
-    ## CALCULATE THROUGHPUT AND RETURN RESULTS
+    # *** CALCULATE THROUGHPUT AND RETURN RESULTS ***
     estimated_throughput = []
     
     estimated_throughput_tot = estimated_volume*8
@@ -231,7 +216,6 @@ def estimate_throughput(sample, oom):
     
     return estimated_throughput
 
-def moving_average_filter(sequence, order):
 
     sum = 0
     for i in range(order):
@@ -239,7 +223,6 @@ def moving_average_filter(sequence, order):
     sequence[-1] = sum/order
 
     return sequence
-
 
 
 if __name__ == "__main__":
